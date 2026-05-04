@@ -532,7 +532,7 @@ async def _safe_cleanup_conversation_state(sender: str) -> bool:
 
 
 async def _perform_cleanup(sender: str) -> None:
-    """Perform the actual cleanup operations for wls-assistant project"""
+    """Perform the actual cleanup operations for erp-assistant project"""
     try:
         # Clear conversation state
         await clear_state(sender)
@@ -542,7 +542,7 @@ async def _perform_cleanup(sender: str) -> None:
         await clear_image_collection(sender)
         logger.debug(f"Image collection cleared for {sender}")
 
-        # Clear any additional Redis keys for this sender (wls-assistant specific)
+        # Clear any additional Redis keys for this sender (erp-assistant specific)
         async with redis_manager.get_client() as client:
             pattern = f"{redis_key_prefix}:*:{sender}"
             keys = await client.keys(pattern)

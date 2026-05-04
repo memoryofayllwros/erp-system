@@ -99,7 +99,7 @@ async def send_sick_leave_application_notification_message(
     Thank you!  
 
     Best regards,  
-    WLS Holdings AI Support Team
+    ERP AI Support Team
 
     """
 
@@ -186,7 +186,7 @@ You’ve received a *Annual Leave Application Notification*. {{8}} Please check 
 Thank you!  
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
 --------------------------------
 
@@ -200,7 +200,7 @@ WLS Holdings AI Support Team
 📝 假期類型：*{{15}}*
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
 
 ⚠️ This application has been flagged as a policy violation because annual leave of more than two days must be submitted at least 14 days in advance.

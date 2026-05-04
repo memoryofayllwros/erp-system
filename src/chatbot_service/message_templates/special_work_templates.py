@@ -42,7 +42,7 @@ Please review the details above and confirm whether to approve or reject the app
 Thank you!  
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
     """
     # Format attendance images into a single readable string
@@ -107,7 +107,7 @@ You’ve received a *Special Work Notification*.  Please check the details below
 Thank you!  
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
     """
 

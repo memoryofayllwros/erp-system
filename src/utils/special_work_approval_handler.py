@@ -34,8 +34,8 @@ class SpecialWorkApprovalHandler:
     
     @staticmethod
     def extract_application_number(message: str) -> Optional[str]:
-        """Extract application number from message (format: WLS-YYYYMMDDHHMMSS)"""
-        pattern = r'WLS-\d{14}'
+        """Extract application number from message (format: ERP-YYYYMMDDHHMMSS)"""
+        pattern = r'ERP-\d{14}'
         match = re.search(pattern, message)
         return match.group(0) if match else None
     

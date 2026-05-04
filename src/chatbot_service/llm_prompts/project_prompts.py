@@ -349,10 +349,10 @@ add_project_gps_template = ChatPromptTemplate.from_messages(
 ### 📌 **需要擷取的項目欄位**
 
 1. **項目編號 project_code** ✅
-   - Usually consists of four letters and five-digit number, might end with 'NO', for example, 'WLHK25003', 'WCGEO25002', 'WLSS25003NO' etc.
-   - 例子: 
-     - 「WLHK25003」、「WCGEO25002」、「WLSS24007NO」, etc.
-   - 可能出現在以下格式中: 「項目編號WLHK25003」、「項目編號WCGEO25002」等
+   - Usually consists of four letters and five-digit number, might end with 'NO', for example, 'PJHK25003', 'PCGEO25002', 'PJSS25003NO' etc.
+   - 例子:
+     - 「PJHK25003」、「PCGEO25002」、「PJSS24007NO」, etc.
+   - 可能出現在以下格式中: 「項目編號PJHK25003」、「項目編號PCGEO25002」等
 
 2. **位置名稱 location_name** ✅
    - 必須為一個地點名稱，例如: 「環球大廈南出口」、「中環皇后大道中123號」、「銅鑼灣時代廣場」

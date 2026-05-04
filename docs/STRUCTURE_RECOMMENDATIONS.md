@@ -1,5 +1,5 @@
 # File Structure Analysis & Recommendations
-## WLS Assistant - October 2025
+## ERP Assistant
 
 ---
 
@@ -21,7 +21,7 @@
 
 **Current State:**
 ```
-wls-assistant/
+erp-assistant/
 ├── attendance_html/     # Static files
 ├── certs/              # Certificates
 ├── config/             # Config files
@@ -38,7 +38,7 @@ wls-assistant/
 
 **Recommended Structure:**
 ```
-wls-assistant/
+erp-assistant/
 ├── src/                  # Application code
 ├── infrastructure/       # ✅ Already good
 ├── temporal_app/         # ✅ Already good
@@ -158,7 +158,7 @@ class Settings(BaseSettings):
 ### 5. **Suggested Final Structure** ✅
 
 ```
-wls-assistant/
+erp-assistant/
 ├── .github/                    # CI/CD workflows
 ├── assets/
 │   ├── fonts/                  # From root fonts/

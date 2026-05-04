@@ -1,5 +1,5 @@
 """
-Redis Manager for WLS Assistant Assistant
+Redis Manager for ERP Assistant
 Handles Redis connections, operations, and fallback mechanisms.
 """
 
@@ -579,7 +579,7 @@ class RedisManager:
                             f"Error clearing pattern '{pattern}' for {sender}: {str(pattern_error)}"
                         )
 
-                # 3. Clear any other wls-assistant keys for this sender
+                # 3. Clear any other erp-assistant keys for this sender
                 general_pattern = f"{redis_key_prefix}:*:{sender}"
                 try:
                     keys = await client.keys(general_pattern)
@@ -591,7 +591,7 @@ class RedisManager:
                             if deleted_count > 0:
                                 cleared_keys.extend(remaining_keys)
                                 self._logger.debug(
-                                    f"Cleared {deleted_count} additional wls-assistant keys for {sender}"
+                                    f"Cleared {deleted_count} additional erp-assistant keys for {sender}"
                                 )
                 except Exception as general_error:
                     self._logger.warning(
@@ -788,7 +788,7 @@ class RedisManager:
 
                 # 3. Clear any other keys that might contain image data
                 general_patterns = [
-                    f"{redis_key_prefix}:*:{sender}",  # Any wls-assistant keys for this sender
+                    f"{redis_key_prefix}:*:{sender}",  # Any erp-assistant keys for this sender
                 ]
 
                 for pattern in general_patterns:

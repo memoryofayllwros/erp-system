@@ -1,5 +1,5 @@
 """
-Redis Configuration Management for WLS Assistant
+Redis Configuration Management for ERP Assistant
 Handles Redis configuration, environment variables, and connection settings.
 Enhanced version with better Docker networking support and fallback mechanisms.
 """
@@ -97,7 +97,7 @@ class RedisConfig:
 
     # Application-specific settings
     key_prefix: str = field(
-        default_factory=lambda: os.getenv("REDIS_KEY_PREFIX", "wls-assistant")
+        default_factory=lambda: os.getenv("REDIS_KEY_PREFIX", "erp-assistant")
     )
     default_ttl: int = field(
         default_factory=lambda: int(os.getenv("REDIS_DEFAULT_TTL", 86400))

@@ -1,4 +1,4 @@
-- name: Initial VM setup for wls Assistant
+- name: Initial VM setup for ERP Assistant
   hosts: app
   become: true
   tasks:
@@ -20,7 +20,7 @@
 
     - name: Create project directory
       file:
-        path: /opt/wls-assistant
+        path: /opt/erp-assistant
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
@@ -29,7 +29,7 @@
     - name: Clone repo if not exists
       git:
         repo: 
-        dest: /opt/wls-assistant
+        dest: /opt/erp-assistant
         version: main
         force: no   # don't overwrite if exists
       register: git_clone

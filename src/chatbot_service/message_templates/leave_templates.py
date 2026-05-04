@@ -40,7 +40,7 @@ Please review the details above and confirm whether to approve or reject the app
 Thank you!
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
 """
 
@@ -100,7 +100,7 @@ You’ve received a *Leave Application Notification*.  Please check the details 
 Thank you!  
 
 Best regards,  
-WLS Holdings AI Support Team
+ERP AI Support Team
 
     """
 

@@ -1,9 +1,9 @@
 ---
-- name: Deploy wls Assistant with Docker
+- name: Deploy ERP Assistant with Docker
   hosts: app
   become: true
   vars:
-    app_dir: /opt/wls-assistant
+    app_dir: /opt/erp-assistant
   tasks:
     - name: Ensure git is installed
       apt:
@@ -13,7 +13,7 @@
 
     - name: Pull latest code from Git repo
       git:
-        repo: "https://github.com/virpluzteam/wls-assistant.git"
+        repo: "https://github.com/memoryofayllwros/erp-assistant.git"
         dest: "{{ app_dir }}"
         version: main
         force: yes
@@ -43,7 +43,7 @@
     - name: Force remove conflicting containers
       shell: |
         docker rm -f redis-container temporal-postgresql || true
-        docker rm -f $(docker ps -aq --filter "name=wls-assistant") || true
+        docker rm -f $(docker ps -aq --filter "name=erp-assistant") || true
       ignore_errors: true
 
     - name: Remove orphaned containers and networks

@@ -3,7 +3,7 @@
 # Date: 25-Oct-2025
 
 #---------------------------README -------------------------------
-# Main application entry point for wls Assistant API
+# Main application entry point for ERP Assistant API
 # Sets up FastAPI app with Temporal and Redis integrations
 # Handles incoming webhooks from Twilio WhatsApp
 # Manages conversation state and media collections
@@ -212,8 +212,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="wls Assistant API",
-    description="API for wls Assistant with Temporal workflows and Redis caching",
+    title="ERP Assistant API",
+    description="API for ERP Assistant with Temporal workflows and Redis caching",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
@@ -235,7 +235,7 @@ else:
 @app.get("/")
 async def root():
     return {
-        "message": "wls Assistant API is running",
+        "message": "ERP Assistant API is running",
         "environment": current_env,
         "version": "1.0.0",
         "timestamp": get_this_moment().isoformat(),

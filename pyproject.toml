@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "wls-assistant"
+name = "erp-assistant"
 version = "0.1.0"
-description = ""
+description = "WhatsApp-based workforce management chatbot for attendance tracking, leave applications, and payslip generation"
 authors = ["memoryofayllwros <151952863+memoryofayllwros@users.noreply.github.com>"]
 readme = "README.md"
 packages = [{include = "src"}]
