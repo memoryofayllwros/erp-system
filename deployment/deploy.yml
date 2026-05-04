@@ -1,0 +1,92 @@
+---
+- name: Deploy wls Assistant with Docker
+  hosts: app
+  become: true
+  vars:
+    app_dir: /opt/wls-assistant
+  tasks:
+    - name: Ensure git is installed
+      apt:
+        name: git
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Pull latest code from Git repo
+      git:
+        repo: "https://github.com/virpluzteam/wls-assistant.git"
+        dest: "{{ app_dir }}"
+        version: main
+        force: yes
+      environment:
+        GIT_SSH_COMMAND: 'ssh -i /home/jingwang_official/.ssh/github_key -o StrictHostKeyChecking=no'
+
+    - name: Copy .env file to VM
+      copy:
+        src: .env
+        dest: "{{ app_dir }}/.env"
+        owner: jingwang_official
+        group: jingwang_official
+        mode: '0600'
+
+    - name: Check if docker-compose.yml exists
+      stat:
+        path: "{{ app_dir }}/docker-compose.yml"
+      register: compose_file
+
+    - name: Stop and remove containers & volumes (project-specific)
+      shell: docker compose down -v
+      args:
+        chdir: "{{ app_dir }}"
+      when: compose_file.stat.exists
+      ignore_errors: true
+
+    - name: Force remove conflicting containers
+      shell: |
+        docker rm -f redis-container temporal-postgresql || true
+        docker rm -f $(docker ps -aq --filter "name=wls-assistant") || true
+      ignore_errors: true
+
+    - name: Remove orphaned containers and networks
+      shell: |
+        docker compose down --remove-orphans -v || true
+        docker network prune -f || true
+      args:
+        chdir: "{{ app_dir }}"
+      ignore_errors: true
+
+    - name: Build fresh images and start containers
+      shell: docker compose build --no-cache && docker compose up -d
+      args:
+        chdir: "{{ app_dir }}"
+      when: compose_file.stat.exists
+
+    - name: Wait for Temporal to be ready
+      wait_for:
+        port: 7233
+        host: 127.0.0.1
+        delay: 10
+        timeout: 60
+      ignore_errors: true
+
+    - name: Register Temporal namespace
+      shell: |
+        docker run --rm --network host temporalio/tctl:latest \
+          --ns default \
+          --address 127.0.0.1:7233 \
+          namespace register
+      args:
+        chdir: "{{ app_dir }}"
+      ignore_errors: true   # in case namespace already exists
+
+    - name: Verify containers are running
+      shell: docker compose ps
+      args:
+        chdir: "{{ app_dir }}"
+      register: container_status
+
+    - name: Display container status
+      debug:
+        var: container_status.stdout_lines
+
+    - name: Prune unused Docker resources
+      shell: docker system prune -a --volumes -f

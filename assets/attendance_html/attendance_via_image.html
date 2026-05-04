@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-zh="📷 特殊簽到 (EXIF)" data-en="📷 Special Attendance Register (EXIF)">📷 Special Attendance Register (EXIF)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    #status {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+    }
+    #status.error {
+      background-color: #ffebee;
+      border-left-color: #f44336;
+      color: #c62828;
+    }
+    #status.success {
+      background-color: #e8f5e8;
+      border-left-color: #4caf50;
+      color: #2e7d32;
+    }
+    #status.warning {
+      background-color: #fff3e0;
+      border-left-color: #ff9800;
+      color: #6d4c41;
+    }
+    .upload-section {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      text-align: center;
+    }
+    .upload-section.dragover {
+      border-color: #2196f3;
+      background-color: #f3f9ff;
+    }
+    .upload-section.active {
+      border-color: #4caf50;
+      background-color: #e8f5e8;
+    }
+    #photo-section {
+      border-color: #2196f3;
+    }
+    #screenshot-section {
+      border-color: #ff9800;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .file-input-label {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #2196f3;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    .file-input-label:hover {
+      background-color: #1976d2;
+    }
+    button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    button:hover:not(:disabled) {
+      background-color: #1976d2;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .image-preview {
+      max-width: 100%;
+      max-height: 300px;
+      margin-top: 1rem;
+      border-radius: 8px;
+      display: none;
+    }
+    .preview-container {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    .preview-box {
+      flex: 1;
+      min-width: 200px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      padding: 0.5rem;
+      background: white;
+      display: none;
+    }
+    .preview-box.show {
+      display: block;
+    }
+    .preview-box h4 {
+      margin: 0 0 0.5rem 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .preview-box img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 4px;
+    }
+    .info-box {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      display: none;
+    }
+    .info-box.show { 
+      display: block; 
+    }
+    .info-box h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .exif-data {
+      background-color: #e3f2fd;
+      padding: 0.5rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+      font-size: 14px;
+    }
+    .notice {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #fff3e0;
+      border-left: 4px solid #ff9800;
+      color: #6d4c41;
+      display: none;
+    }
+    .notice.show { display: block; }
+    .small { font-size: 12px; color: #666; }
+    .language-dropdown {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+    }
+    
+    .language-dropdown-toggle {
+      background: #f0f0f0;
+      color: black;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: normal;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-width: 120px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .language-dropdown-toggle:hover {
+      background: #e0e0e0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .language-dropdown-toggle:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .dropdown-arrow {
+      font-size: 12px;
+      transition: transform 0.3s ease;
+    }
+    
+    .language-dropdown.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .language-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-top: 4px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1001;
+    }
+    
+    .language-dropdown.open .language-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    
+    .language-option {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .language-option:last-child {
+      border-bottom: none;
+    }
+    
+    .language-option:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .language-option.selected {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .language-dropdown {
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+      .language-dropdown-toggle {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-width: 100px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .language-dropdown-toggle {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 90px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="language-dropdown" id="language-dropdown">
+      <button class="language-dropdown-toggle" id="language-dropdown-toggle" onclick="toggleLanguageDropdown()">
+        <span id="current-language">🇺🇸 English</span>
+        <span class="dropdown-arrow">▼</span>
+      </button>
+      <div class="language-dropdown-menu" id="language-dropdown-menu">
+        <div class="language-option" data-lang="en" onclick="selectLanguage('en')">
+          🇺🇸 English
+        </div>
+        <div class="language-option" data-lang="zh" onclick="selectLanguage('zh')">
+          🇭🇰 繁體中文
+        </div>
+      </div>
+    </div>
+    <h2 data-zh="📷 特殊簽到" data-en="📷 Special Attendance Register">📷 Special Attendance Register</h2>
+    <div id="status" data-zh="請選擇項目並上傳包含位置資訊的圖片" data-en="Please select project and upload images with location information">Please select project and upload images with location information</div>
+
+    <div id="inapp-warning" class="notice"></div>
+    <div id="insecure-warning" class="notice"></div>
+
+    <form id="checkin-form">
+      <input type="hidden" name="token" value="{{ token }}">
+      <input type="hidden" name="latitude" id="latitude" />
+      <input type="hidden" name="longitude" id="longitude" />
+      <input type="hidden" name="project_id" id="project_id" />
+      
+      <!-- Project Selection Section -->
+      <div class="upload-section" style="border-color: #9c27b0; background-color: #f3e5f5;">
+        <p data-zh="🏗️ 選擇項目" data-en="🏗️ Select Project">🏗️ Select Project</p>
+        <select id="project-select" style="width: 100%; padding: 12px; border-radius: 6px; border: 2px solid #9c27b0; font-size: 16px; background-color: white; cursor: pointer;">
+          <option value="" data-zh="-- 載入項目中... --" data-en="-- Loading projects... --">-- Loading projects... --</option>
+        </select>
+        <p class="small" data-zh="選擇您要打卡的項目" data-en="Select the project you want to register attendance to">Select the project you want to register attendance to</p>
+      </div>
+      
+      <!-- Photo Upload Section -->
+      <div class="upload-section" id="photo-section">
+        <p data-zh="📷 拍攝現場具代表性的地標或特徵" data-en="📷 Take a photo of a recognizable landmark or feature on-site">📷 Take a photo of a recognizable landmark or feature on-site</p> 
+        <button type="button" id="camera-btn" class="file-input-label" style="border:none;" data-zh="📸 開啟相機" data-en="📸 Open Camera">📸 Open Camera</button>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;">
+        <p class="small" data-zh="直接使用相機拍攝" data-en="Take photos directly with camera">Take photos directly with camera</p>
+      </div>
+
+      <!-- Screenshot Upload Section -->
+      <div class="upload-section" id="screenshot-section" style="margin-top: 1.5rem;">
+        <p data-zh="🗺️ 上傳Google Maps截圖" data-en="🗺️ Upload Google Maps screenshot">🗺️ Upload Google Maps screenshot</p>
+        <label for="screenshot-input" class="file-input-label" data-zh="📱 選擇截圖" data-en="📱 Select Screenshot">📱 Select Screenshot</label>
+        <input type="file" id="screenshot-input" accept="image/*">
+        <p class="small" data-zh="上傳地圖截圖 | sample screenshot" data-en="Upload map screenshot | sample screenshot">Upload map screenshot | sample screenshot</p>
+      </div>
+
+      <div id="exif-info" class="info-box">
+        <h3 data-zh="📍 圖片EXIF資訊: " data-en="📍 Image EXIF Information:">📍 Image EXIF Information:</h3>
+        <div id="exif-details"></div>
+      </div>
+
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top: 1rem;">
+        <button id="checkin-btn" type="button" style="display:none;" data-zh="確認" data-en="Confirm">Confirm</button>
+      </div>
+      <div class="small" style="margin-top:6px;" data-zh="⏳ 連結將於 {{ minutes_remaining }} 分鐘後過期" data-en="⏳ Link expires in {{ minutes_remaining }} minutes">⏳ Link expires in {{ minutes_remaining }} minutes</div>
+    </form>
+
+    <div class="preview-container">
+      <div id="photo-preview-box" class="preview-box">
+        <h4 data-zh="📷 現場照片" data-en="📷 On-site Photo">📷 On-site Photo</h4>
+        <img id="photo-preview" alt="Photo preview">
+      </div>
+      <div id="screenshot-preview-box" class="preview-box">
+        <h4 data-zh="🗺️ 地圖截圖" data-en="🗺️ Map Screenshot">🗺️ Map Screenshot</h4>
+        <img id="screenshot-preview" alt="Screenshot preview">
+      </div>
+    </div>
+  </div>
+
+  <!-- EXIF.js library from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+  
+  <!-- Include the enhanced language utility -->
+  <script src="/static/language_utils.js"></script>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const form = document.getElementById('checkin-form');
+    const photoInput = document.getElementById('photo-input');
+    const cameraBtn = document.getElementById('camera-btn');
+    const screenshotInput = document.getElementById('screenshot-input');
+    const projectSelect = document.getElementById('project-select');
+    const photoSection = document.getElementById('photo-section');
+    const screenshotSection = document.getElementById('screenshot-section');
+    const photoPreview = document.getElementById('photo-preview');
+    const screenshotPreview = document.getElementById('screenshot-preview');
+    const photoPreviewBox = document.getElementById('photo-preview-box');
+    const screenshotPreviewBox = document.getElementById('screenshot-preview-box');
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const projectIdInput = document.getElementById('project_id');
+    const checkinBtn = document.getElementById('checkin-btn');
+    const exifInfo = document.getElementById('exif-info');
+    const exifDetails = document.getElementById('exif-details');
+    const inappWarning = document.getElementById('inapp-warning');
+    const insecureWarning = document.getElementById('insecure-warning');
+
+    let photoFile = null;
+    let screenshotFile = null;
+    let exifData = null;
+    let useManualLocation = false;
+    let projects = [];
+
+    // Language dropdown functionality
+    function toggleLanguageDropdown() {
+      const dropdown = document.getElementById('language-dropdown');
+      dropdown.classList.toggle('open');
+    }
+    
+    function selectLanguage(language) {
+      // Check if language manager is available
+      if (window.languageManager) {
+        window.languageManager.setLanguage(language);
+      } else {
+        console.error('Language manager not available');
+        // Fallback: manually update elements
+        updateLanguageManually(language);
+      }
+      
+      const dropdown = document.getElementById('language-dropdown');
+      dropdown.classList.remove('open');
+      
+      // Update selected state
+      document.querySelectorAll('.language-option').forEach(option => {
+        option.classList.remove('selected');
+      });
+      document.querySelector(`[data-lang="${language}"]`).classList.add('selected');
+    }
+    
+    // Fallback function for manual language updates
+    function updateLanguageManually(language) {
+      // Update all elements with data attributes
+      document.querySelectorAll('[data-zh][data-en]').forEach(element => {
+        const translation = element.getAttribute(`data-${language}`);
+        if (translation) {
+          element.textContent = translation;
+        }
+      });
+
+      // Update title
+      const titleElement = document.querySelector('title');
+      if (titleElement) {
+        const titleTranslation = titleElement.getAttribute(`data-${language}`);
+        if (titleTranslation) {
+          document.title = titleTranslation;
+        }
+      }
+
+      // Update language dropdown display
+      const currentLanguageSpan = document.getElementById('current-language');
+      if (currentLanguageSpan) {
+        if (language === 'zh') {
+          currentLanguageSpan.textContent = '🇭🇰 繁體中文';
+        } else {
+          currentLanguageSpan.textContent = '🇺🇸 English';
+        }
+      }
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const dropdown = document.getElementById('language-dropdown');
+      if (!dropdown.contains(event.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    // Load projects on page load
+      async function loadProjects() {
+      try {
+        const response = await fetch('/read-all-projects/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === 'success' && data.projects) {
+            projects = data.projects;
+            populateProjectSelect();
+          } else {
+            console.error('Invalid project data format');
+            projectSelect.innerHTML = '<option value="">-- ' + window.languageManager.translate('Unable to load projects') + ' --</option>';
+          }
+        } else {
+          console.error('Failed to load projects');
+          projectSelect.innerHTML = '<option value="">-- ' + window.languageManager.translate('Unable to load projects') + ' --</option>';
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+        projectSelect.innerHTML = '<option value="">-- ' + window.languageManager.translate('Loading failed, please refresh') + ' --</option>';
+      }
+    }
+
+    function populateProjectSelect() {
+      if (!projects || projects.length === 0) {
+        projectSelect.innerHTML = '<option value="">-- ' + window.languageManager.translate('No available projects') + ' --</option>';
+        return;
+      }
+
+      let options = '<option value="">-- ' + window.languageManager.translate('Please select a project') + ' --</option>';
+      projects.forEach(project => {
+        const projectId = project.project_id;
+        const projectNo = project.project_code;
+        const projectTitle = project.project_title;
+        options += `<option value="${projectId}">${projectNo} - ${projectTitle}</option>`;
+      });
+      
+      projectSelect.innerHTML = options;
+    }
+
+    // Handle project selection
+    projectSelect.addEventListener('change', (e) => {
+      const selectedProjectId = e.target.value;
+      projectIdInput.value = selectedProjectId;
+      
+      if (selectedProjectId) {
+        const selectedProject = projects.find(p => p.project_id === selectedProjectId);
+        if (selectedProject) {
+          updateStatus(`✅ ${window.languageManager.translate('Project selected')}: ${selectedProject.project_code} - ${selectedProject.project_title}`, 'success');
+        }
+      }
+    });
+
+    function updateStatus(message, type = 'info') {
+      if (typeof message === 'string') {
+        statusEl.innerHTML = message;
+      } else {
+        statusEl.textContent = String(message);
+      }
+      statusEl.className = type;
+    }
+
+    function convertDMSToDD(degrees, minutes, seconds, direction) {
+      let dd = degrees + minutes/60 + seconds/3600;
+      if (direction === 'S' || direction === 'W') {
+        dd = dd * -1;
+      }
+      return dd;
+    }
+
+    function parseGPSCoordinate(gpsData, ref) {
+      if (!gpsData || gpsData.length < 3) return null;
+      const degrees = gpsData[0];
+      const minutes = gpsData[1];
+      const seconds = gpsData[2];
+      return convertDMSToDD(degrees, minutes, seconds, ref);
+    }
+
+    function extractEXIFData(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const img = new Image();
+          img.src = e.target.result;
+          
+          img.onload = function() {
+            EXIF.getData(img, function() {
+              const allTags = EXIF.getAllTags(this);
+              
+              const gpsLat = EXIF.getTag(this, "GPSLatitude");
+              const gpsLatRef = EXIF.getTag(this, "GPSLatitudeRef");
+              const gpsLng = EXIF.getTag(this, "GPSLongitude");
+              const gpsLngRef = EXIF.getTag(this, "GPSLongitudeRef");
+              const dateTime = EXIF.getTag(this, "DateTime") || EXIF.getTag(this, "DateTimeOriginal");
+              const make = EXIF.getTag(this, "Make");
+              const model = EXIF.getTag(this, "Model");
+              
+              let latitude = null;
+              let longitude = null;
+              
+              if (gpsLat && gpsLatRef && gpsLng && gpsLngRef) {
+                latitude = parseGPSCoordinate(gpsLat, gpsLatRef);
+                longitude = parseGPSCoordinate(gpsLng, gpsLngRef);
+              }
+              
+              resolve({
+                hasGPS: !!(latitude && longitude),
+                latitude,
+                longitude,
+                dateTime,
+                make,
+                model,
+                allTags
+              });
+            });
+          };
+          
+          img.onerror = function() {
+            reject(new Error('Failed to load image'));
+          };
+        };
+        
+        reader.onerror = function() {
+          reject(new Error('Failed to read file'));
+        };
+        
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function displayEXIFInfo(data) {
+      let html = '';
+      
+      if (data.hasGPS) {
+        html += `
+          <div class="exif-data" style="background-color: #e8f5e8; border-left: 4px solid #4caf50;">
+            <strong>✅ ${window.languageManager.translate('GPS coordinates found')}</strong><br>
+            📍 ${window.languageManager.translate('Latitude')}: ${data.latitude.toFixed(6)}<br>
+            📍 ${window.languageManager.translate('Longitude')}: ${data.longitude.toFixed(6)}
+          </div>
+        `;
+      }
+      
+      if (data.dateTime) {
+        html += `<div class="exif-data">📅 ${window.languageManager.translate('Photo time')}: ${data.dateTime}</div>`;
+      }
+      
+      if (data.make || data.model) {
+        html += `<div class="exif-data">📱 ${window.languageManager.translate('Device')}: ${data.make || ''} ${data.model || ''}</div>`;
+      }
+      
+      exifDetails.innerHTML = html;
+      exifInfo.classList.add('show');
+      
+      if (data.hasGPS) {
+        latInput.value = data.latitude;
+        lngInput.value = data.longitude;
+        updateStatus('✅ ' + window.languageManager.translate('GPS coordinates read from image'), 'success');
+        checkIfReadyToSubmit();
+      } else {
+        switchMode.classList.add('show');
+        updateStatus('⚠️ ' + window.languageManager.translate('Image has no GPS information, please use manual location'), 'warning');
+      }
+    }
+
+    async function handleFileSelect(file, isPhoto = true) {
+      if (!file) return;
+      
+      if (isPhoto) {
+        photoFile = file;
+        photoSection.classList.add('active');
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          photoPreview.src = e.target.result;
+          photoPreviewBox.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+        
+        updateStatus('🔍 ' + window.languageManager.translate('Reading photo EXIF information...'), 'info');
+        
+        try {
+          exifData = await extractEXIFData(file);
+          if (exifData.hasGPS) {
+            displayEXIFInfo(exifData);
+          } else {
+            updateStatus('⚠️ ' + window.languageManager.translate('Image has no GPS information, please upload map screenshot'), 'warning');
+            exifInfo.classList.remove('show');
+          }
+        } catch (error) {
+          console.error('EXIF extraction error:', error);
+          updateStatus('⚠️ ' + window.languageManager.translate('Unable to read EXIF information, please upload map screenshot'), 'warning');
+          exifInfo.classList.remove('show');
+        }
+      } else {
+        screenshotFile = file;
+        screenshotSection.classList.add('active');
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          screenshotPreview.src = e.target.result;
+          screenshotPreviewBox.classList.add('show');
+        };
+        reader.readAsDataURL(file);
+        
+        updateStatus('🗺️ ' + window.languageManager.translate('Map screenshot uploaded'), 'info');
+      }
+      
+      checkIfReadyToSubmit();
+    }
+
+    function checkIfReadyToSubmit() {
+      const hasPhoto = photoFile !== null;
+      const hasScreenshot = screenshotFile !== null;
+      
+      if (hasPhoto || hasScreenshot) {
+        checkinBtn.style.display = 'inline-block';
+      }
+    }
+
+    // Camera button click
+    cameraBtn.addEventListener('click', () => {
+      photoInput.click();
+    });
+
+    // File upload handling
+    photoInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleFileSelect(file, true);
+      }
+    });
+
+    screenshotInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleFileSelect(file, false);
+      }
+    });
+
+    // Drag and drop for photo section
+    photoSection.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      photoSection.classList.add('dragover');
+    });
+
+    photoSection.addEventListener('dragleave', () => {
+      photoSection.classList.remove('dragover');
+    });
+
+    photoSection.addEventListener('drop', (e) => {
+      e.preventDefault();
+      photoSection.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+          photoInput.files = files;
+          handleFileSelect(file, true);
+        } else {
+          updateStatus('❌ ' + window.languageManager.translate('Please select an image file'), 'error');
+        }
+      }
+    });
+
+    // Drag and drop for screenshot section
+    screenshotSection.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      screenshotSection.classList.add('dragover');
+    });
+
+    screenshotSection.addEventListener('dragleave', () => {
+      screenshotSection.classList.remove('dragover');
+    });
+
+    screenshotSection.addEventListener('drop', (e) => {
+      e.preventDefault();
+      screenshotSection.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+          screenshotInput.files = files;
+          handleFileSelect(file, false);
+        } else {
+          updateStatus('❌ ' + window.languageManager.translate('Please select an image file'), 'error');
+        }
+      }
+    });
+
+
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      
+      if (!photoFile && !screenshotFile) {
+        updateStatus("❌ " + window.languageManager.translate('Please upload at least one photo or screenshot'), 'error');
+        return;
+      }
+      
+      
+      if (!projectIdInput.value) {
+        updateStatus("❌ " + window.languageManager.translate('Please select a project'), 'error');
+        return;
+      }
+      
+      checkinBtn.disabled = true;
+      updateStatus("📤 " + window.languageManager.translate('Submitting Attendance Info...'), 'info');
+
+      try {
+        const formData = new FormData();
+        
+        // Add required fields for the new model
+        formData.append('token', form.token.value);
+        formData.append('project_id', projectIdInput.value);
+        formData.append('timestamp', new Date().toLocaleString('sv-SE', {timeZone: 'Asia/Hong_Kong'}).replace('T', ' '));
+        
+        // Add site image (required)
+        if (photoFile) {
+          formData.append('site_image', photoFile);
+        } else {
+          // If no photo, use screenshot as site image
+          formData.append('site_image', screenshotFile);
+        }
+        
+        // Add Google Maps screenshot (optional)
+        if (screenshotFile) {
+          formData.append('screenshot', screenshotFile);
+        }
+
+        const res = await fetch("/attendance-via-image/", {
+          method: "POST",
+          body: formData
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          updateStatus("✅ " + window.languageManager.translate('Attendance Register Succeed!'), 'success');
+          
+          let sourceType = '';
+          if (photoFile && exifData && exifData.hasGPS) {
+            sourceType = window.languageManager.translate('Photo EXIF GPS');
+          } else if (photoFile && !exifData?.hasGPS) {
+            sourceType = window.languageManager.translate('Photo');
+          } else if (screenshotFile) {
+            sourceType = window.languageManager.translate('Map Screenshot');
+          }
+          
+          const uploadedFiles = [];
+          if (photoFile) uploadedFiles.push(`📷 ${photoFile.name}`);
+          if (screenshotFile) uploadedFiles.push(`🗺️ ${screenshotFile.name}`);
+          
+          const confirmationDiv = document.createElement('div');
+          const currentLang = window.languageManager.getCurrentLanguage();
+          confirmationDiv.innerHTML = `
+            <div style="margin-top: 1rem; padding: 1rem; background-color: #e8f5e8; border-radius: 8px; border-left: 4px solid #4caf50;">
+              <p><strong>✅ ${window.languageManager.translate('Attendance Register Succeed!')}</strong></p>
+              <p>📁 ${window.languageManager.translate('Uploaded')}: ${uploadedFiles.join(', ')}</p>
+              <p>📍 ${window.languageManager.translate('Source')}: ${sourceType}</p>
+              <p>🏗️ ${window.languageManager.translate('Project')}: ${projectSelect.options[projectSelect.selectedIndex].text}</p>
+              <p>⏰ ${window.languageManager.translate('Time')}: ${new Date().toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true})} HKT</p>
+              <p class="small">${window.languageManager.translate('System will send confirmation message to your WhatsApp')}</p>
+            </div>
+          `;
+          document.querySelector('.container').appendChild(confirmationDiv);
+          
+          // Hide the confirm button after successful submission
+          checkinBtn.style.display = 'none';
+          
+          photoInput.disabled = true;
+          screenshotInput.disabled = true;
+          
+        } else {
+          let errorMsg = "❌ " + window.languageManager.translate('Check-in failed');
+          try {
+            const errorData = await res.json();
+            if (errorData.detail) {
+              if (Array.isArray(errorData.detail)) {
+                errorMsg += ": " + errorData.detail.map(err => err.msg || err).join(", ");
+              } else {
+                errorMsg += ": " + errorData.detail;
+              }
+            }
+          } catch (e) {
+            errorMsg += " (HTTP " + res.status + ")";
+          }
+          updateStatus(errorMsg, 'error');
+          checkinBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Submit error:', error);
+        updateStatus("❌ " + window.languageManager.translate('Network error, please try again'), 'error');
+        checkinBtn.disabled = false;
+      }
+    }
+
+    checkinBtn.addEventListener('click', handleFormSubmit);
+
+    function detectInAppBrowser() {
+      const ua = navigator.userAgent || '';
+      const isInApp = /WhatsApp|FBAN|FBAV|Instagram|Line|WeChat|MicroMessenger/i.test(ua);
+      if (isInApp) {
+        inappWarning.classList.add('show');
+        inappWarning.innerHTML = "📱 " + window.languageManager.translate('Using in-app browser. If functionality is abnormal, please open with system browser.');
+      }
+    }
+
+    function checkSecureContext() {
+      const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        insecureWarning.classList.add('show');
+        insecureWarning.innerHTML = "🔒 " + window.languageManager.translate('Non-secure connection may affect location functionality. Please use HTTPS.');
+      }
+      return isSecure;
+    }
+
+
+    // Initialize language manager
+    function initializeLanguageManager() {
+      if (window.languageManager) {
+        window.languageManager.updateAllElements();
+      } else {
+        console.warn('Language manager not available, using fallback');
+        // Initialize with default language detection
+        const currentLang = document.documentElement.lang || 'en';
+        updateLanguageManually(currentLang === 'zh' ? 'zh' : 'en');
+      }
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeLanguageManager();
+    });
+
+    // Initialize
+    initializeLanguageManager();
+    loadProjects();
+    detectInAppBrowser();
+    checkSecureContext();
+  </script>
+</body>
+</html>

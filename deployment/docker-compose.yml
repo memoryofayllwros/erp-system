@@ -1,0 +1,184 @@
+services:
+  # Redis service for caching (still needed for other services)
+  redis:
+    image: redis:7-alpine
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ../infrastructure/redis_connection/redis.conf:/etc/redis/redis.conf
+    restart: always
+    command: redis-server /etc/redis/redis.conf
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL for Temporal
+  temporal-postgresql:
+    image: postgres:13
+    container_name: temporal-postgresql
+    environment:
+      - POSTGRES_PASSWORD=temporal
+      - POSTGRES_USER=temporal
+      - POSTGRES_DB=temporal
+      - POSTGRES_DB_VISIBILITY=temporal_visibility
+    volumes:
+      - temporal_postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Temporal Server
+  temporal:
+    image: temporalio/auto-setup:1.25.0
+    container_name: temporal-server
+    depends_on:
+      temporal-postgresql:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgresql
+      - TEMPORAL_BIND_ON_IP=0.0.0.0
+    ports:
+      - "7233:7233"
+    volumes: []
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'Temporal starting...'"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # Temporal Web UI
+  temporal-web:
+    image: temporalio/ui:2.32.0
+    container_name: temporal-web
+    depends_on:
+      temporal:
+        condition: service_started
+    environment:
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8081
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  # Main FastAPI application - Production
+  app:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: app-container
+    env_file: ./.env
+    environment:
+      - APP_ENV=${APP_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+      - LOG_LEVEL=INFO
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    volumes:
+      - ../logs:/app/logs
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - app-network
+
+  # Temporal Worker - Production
+  temporal-worker:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.temporal
+    container_name: temporal-worker-container
+    env_file: ./.env
+    environment:
+      - APP_ENV=${APP_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+      - LOG_LEVEL=INFO
+      - TEMPORAL_ADDRESS=${TEMPORAL_ADDRESS}
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE}
+      - ACCOUNT_SID=${ACCOUNT_SID}
+      - AUTH_TOKEN=${AUTH_TOKEN}
+      - WHATSAPP_NUMBER=${WHATSAPP_NUMBER}
+      - MESSAGING_SERVICE_SID=${MESSAGING_SERVICE_SID}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - ../src:/app/src
+      - ../logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      temporal:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /proc/1/stat"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # Nginx reverse proxy - Production
+  nginx:
+    image: nginx:latest
+    container_name: nginx-container
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ../assets/certs:/etc/nginx/certs
+      - ../assets/attendance_html:/usr/share/nginx/attendance_html
+      
+    ports:
+      - "8080:8080"
+      - "443:443"
+    restart: always
+    depends_on:
+      app:
+        condition: service_started
+      temporal-worker:
+        condition: service_started
+    networks:
+      - app-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.2'
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  temporal_postgres_data:

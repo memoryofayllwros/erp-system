@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-zh="打卡" data-en="Attendance Register">Attendance Register</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    #status {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+    }
+    #status.error {
+      background-color: #ffebee;
+      border-left-color: #f44336;
+      color: #c62828;
+    }
+    #status.success {
+      background-color: #e8f5e8;
+      border-left-color: #4caf50;
+      color: #2e7d32;
+    }
+    #map {
+      width: 100%;
+      height: 400px;
+      margin-top: 1rem;
+      display: none;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    button {
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    button:hover:not(:disabled) {
+      background-color: #1976d2;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .project-selection {
+      margin: 1rem 0;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+      display: none;
+    }
+    .project-selection.show { 
+      display: block; 
+    }
+    .project-option {
+      margin: 0.5rem 0;
+      padding: 0.75rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .project-option:hover {
+      border-color: #2196f3;
+      background-color: #f3f9ff;
+    }
+    .project-option.selected {
+      border-color: #4caf50;
+      background-color: #e8f5e8;
+    }
+    .project-option.selected::after {
+      content: "✓";
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #4caf50;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .project-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .project-info {
+      font-size: 14px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .distance {
+      background: #e3f2fd;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #1976d2;
+      font-weight: 500;
+    }
+    .notice {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background-color: #fff3e0;
+      border-left: 4px solid #ff9800;
+      color: #6d4c41;
+      display: none;
+    }
+    .notice.show { display: block; }
+    .small { font-size: 12px; color: #666; }
+    .current-location-marker {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .marker-pin {
+      width: 30px;
+      height: 30px;
+      background: #ff4444;
+      border: 3px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .marker-pin::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 12px solid #ff4444;
+    }
+    .location-label {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .language-dropdown {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1000;
+    }
+    
+    .language-dropdown-toggle {
+      background: #f0f0f0;
+      color: black;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: normal;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-width: 120px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .language-dropdown-toggle:hover {
+      background: #e0e0e0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .language-dropdown-toggle:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .dropdown-arrow {
+      font-size: 12px;
+      transition: transform 0.3s ease;
+    }
+    
+    .language-dropdown.open .dropdown-arrow {
+      transform: rotate(180deg);
+    }
+    
+    .language-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-top: 4px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      z-index: 1001;
+    }
+    
+    .language-dropdown.open .language-dropdown-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    
+    .language-option {
+      padding: 10px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .language-option:last-child {
+      border-bottom: none;
+    }
+    
+    .language-option:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .language-option.selected {
+      background-color: #e3f2fd;
+      color: #1976d2;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .language-dropdown {
+        top: 0.5rem;
+        right: 0.5rem;
+      }
+      .language-dropdown-toggle {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-width: 100px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .language-dropdown-toggle {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 90px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="language-dropdown" id="language-dropdown">
+      <button class="language-dropdown-toggle" id="language-dropdown-toggle" onclick="toggleLanguageDropdown()">
+        <span id="current-language">🇺🇸 English</span>
+        <span class="dropdown-arrow">▼</span>
+      </button>
+      <div class="language-dropdown-menu" id="language-dropdown-menu">
+        <div class="language-option" data-lang="en" onclick="selectLanguage('en')">
+          🇺🇸 English
+        </div>
+        <div class="language-option" data-lang="zh" onclick="selectLanguage('zh')">
+          🇭🇰 繁體中文
+        </div>
+      </div>
+    </div>
+    <h2 data-zh="📍 打卡" data-en="📍 Attendance Register">📍 Attendance Register</h2>
+    <div id="status" data-zh="獲取位置中..." data-en="Getting location...">Getting location...</div>
+
+    <div id="inapp-warning" class="notice"></div>
+    <div id="insecure-warning" class="notice"></div>
+
+    <form id="time-tracking-form">
+      <input type="hidden" name="token" value="{{ token }}">
+      <input type="hidden" name="latitude" id="latitude" />
+      <input type="hidden" name="longitude" id="longitude" />
+      <input type="hidden" name="project_id" id="project_id" />
+      <input type="hidden" name="accuracy" id="accuracy" />
+      
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button id="get-location-btn" type="button" style="display:none;" data-zh="獲取我的位置" data-en="Get My Location">Get My Location</button>
+        <button id="time-tracking-btn" type="button" style="display:none;" data-zh="確認" data-en="Confirm">Confirm</button>
+      </div>
+      <div class="small" style="margin-top:6px;" data-zh="⏳ 連結將於 {{ minutes_remaining }} 分鐘後過期" data-en="⏳ Link expires in {{ minutes_remaining }} minutes">⏳ Link expires in {{ minutes_remaining }} minutes</div>
+    </form>
+
+    <div id="project-selection" class="project-selection">
+      <h3 style="margin-top:0; color:#333;" data-zh="選擇你的工作項目: " data-en="Select your work project:">Select your work project:</h3>
+      <div id="project-options"></div>
+    </div>
+
+    <div id="map"></div>
+  </div>
+
+  <!-- Include the enhanced language utility -->
+  <script src="/static/language_utils.js"></script>
+  
+  <script>
+    const statusEl = document.getElementById('status');
+    const form = document.getElementById('time-tracking-form');
+    const latInput = document.getElementById('latitude');
+    const lngInput = document.getElementById('longitude');
+    const projectIdInput = document.getElementById('project_id');
+    const getLocationBtn = document.getElementById('get-location-btn');
+    const timeTrackingBtn = document.getElementById('time-tracking-btn');
+    const mapDiv = document.getElementById('map');
+    const projectSelection = document.getElementById('project-selection');
+    const projectOptions = document.getElementById('project-options');
+    const inappWarning = document.getElementById('inapp-warning');
+    const insecureWarning = document.getElementById('insecure-warning');
+
+    let userLocation = null;
+    let nearbyProjects = [];
+    let map = null;
+    let autoLocationRequested = false;
+
+    // Language dropdown functionality
+    function toggleLanguageDropdown() {
+      const dropdown = document.getElementById('language-dropdown');
+      dropdown.classList.toggle('open');
+    }
+    
+    function selectLanguage(language) {
+      // Check if language manager is available
+      if (window.languageManager) {
+        window.languageManager.setLanguage(language);
+      } else {
+        console.error('Language manager not available');
+        // Fallback: manually update elements
+        updateLanguageManually(language);
+      }
+      
+      const dropdown = document.getElementById('language-dropdown');
+      dropdown.classList.remove('open');
+      
+      // Update selected state
+      document.querySelectorAll('.language-option').forEach(option => {
+        option.classList.remove('selected');
+      });
+      document.querySelector(`[data-lang="${language}"]`).classList.add('selected');
+    }
+    
+    // Fallback function for manual language updates
+    function updateLanguageManually(language) {
+      // Update all elements with data attributes
+      document.querySelectorAll('[data-zh][data-en]').forEach(element => {
+        const translation = element.getAttribute(`data-${language}`);
+        if (translation) {
+          element.textContent = translation;
+        }
+      });
+
+      // Update title
+      const titleElement = document.querySelector('title');
+      if (titleElement) {
+        const titleTranslation = titleElement.getAttribute(`data-${language}`);
+        if (titleTranslation) {
+          document.title = titleTranslation;
+        }
+      }
+
+      // Update language dropdown display
+      const currentLanguageSpan = document.getElementById('current-language');
+      if (currentLanguageSpan) {
+        if (language === 'zh') {
+          currentLanguageSpan.textContent = '🇭🇰 繁體中文';
+        } else {
+          currentLanguageSpan.textContent = '🇺🇸 English';
+        }
+      }
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const dropdown = document.getElementById('language-dropdown');
+      if (!dropdown.contains(event.target)) {
+        dropdown.classList.remove('open');
+      }
+    });
+
+    function updateLanguage() {
+      // Language manager handles this automatically
+      updateConfirmationMessage();
+    }
+
+    function updateConfirmationMessage() {
+      const confirmationDiv = document.querySelector('.container > div:last-child');
+      if (confirmationDiv && (confirmationDiv.innerHTML.includes('Attendance Register Succeed!') || confirmationDiv.innerHTML.includes('打卡成功！'))) {
+        const selectedProject = nearbyProjects.find(p => p.id === projectIdInput.value);
+        const currentLang = window.languageManager.getCurrentLanguage();
+        confirmationDiv.innerHTML = `
+          <div style="margin-top: 1rem; padding: 1rem; background-color: #e8f5e8; border-radius: 8px; border-left: 4px solid #4caf50;">
+            <p><strong>✅ ${window.languageManager.translate('Attendance Register Succeed!')}</strong></p>
+            <p>${window.languageManager.translate('Project')}: ${selectedProject ? selectedProject.project_code + ': ' + selectedProject.project_title : window.languageManager.translate('Unknown Project')}</p>
+            <p>${window.languageManager.translate('Time')}: ${new Date().toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true})} HKT</p>
+            <p class="small">${window.languageManager.translate('System will send confirmation message to your WhatsApp')}</p>
+          </div>
+        `;
+      }
+    }
+
+    function updateStatus(message, type = 'info') {
+      // Use language manager for translation
+      const translatedMessage = window.languageManager.translate(message);
+      
+      if (typeof translatedMessage === 'string') {
+        statusEl.innerHTML = translatedMessage;
+      } else {
+        statusEl.textContent = String(translatedMessage);
+      }
+      statusEl.className = type;
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in kilometers
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function formatDistance(km) {
+      if (km < 1) {
+        return Math.round(km * 1000) + 'm';
+      }
+      return km.toFixed(1) + 'km';
+    }
+
+    async function fetchNearbyProjects(lat, lng) {
+      try {
+        // Fetch nearby projects from the server
+        const response = await fetch('/api/nearby-projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: lat, longitude: lng, radius: 750 }) // 750m radius
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch projects');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.warn('Could not fetch nearby projects:', error);
+        return [];
+      }
+    }
+
+    function showProjectSelection(projects, userLat, userLng) {
+      projectOptions.innerHTML = '';
+      
+      // Calculate distances and sort by proximity
+      const projectsWithDistance = projects.map(project => {
+        const gpsLoc = project.project_gps_location?.[0];
+        if (!gpsLoc) return { ...project, distance: Infinity };
+        
+        const distance = calculateDistance(
+          userLat, userLng,
+          parseFloat(gpsLoc.lat), parseFloat(gpsLoc.lon)
+        );
+        return { ...project, distance };
+      }).sort((a, b) => a.distance - b.distance);
+
+      projectsWithDistance.forEach(project => {
+        const option = document.createElement('div');
+        option.className = 'project-option';
+        option.dataset.projectId = project.id;
+        
+        const gpsLoc = project.project_gps_location?.[0];
+        const locationInfo = gpsLoc ? gpsLoc.location_name : 'Location not specified';
+        const distanceText = project.distance !== Infinity ? formatDistance(project.distance) : 'N/A';
+        
+        option.innerHTML = `
+          <div class="project-title">${project.project_title}</div>
+          <div class="project-info">
+            <span>${locationInfo}</span>
+            <span class="distance">${distanceText}</span>
+          </div>
+        `;
+        
+        option.addEventListener('click', () => selectProject(project.id, option));
+        projectOptions.appendChild(option);
+      });
+      
+      projectSelection.classList.add('show');
+      nearbyProjects = projectsWithDistance;
+    }
+
+    function selectProject(projectId, optionElement) {
+      // Clear previous selections
+      document.querySelectorAll('.project-option').forEach(el => {
+        el.classList.remove('selected');
+      });
+      
+      // Mark current selection
+      optionElement.classList.add('selected');
+      projectIdInput.value = projectId;
+      
+      // Show Attendance Register button
+      timeTrackingBtn.style.display = 'inline-block';
+      
+      // Update map to show selected project location
+      updateMapWithSelection(projectId);
+    }
+
+    function updateMapWithSelection(projectId) {
+      const selectedProject = nearbyProjects.find(p => p.id === projectId);
+      if (!selectedProject || !selectedProject.project_gps_location?.[0]) return;
+      
+      const gpsLoc = selectedProject.project_gps_location[0];
+      const projectLat = parseFloat(gpsLoc.lat);
+      const projectLng = parseFloat(gpsLoc.lon);
+      
+      // Center map between user location and selected project
+      const centerLat = (userLocation.lat + projectLat) / 2;
+      const centerLng = (userLocation.lng + projectLng) / 2;
+      
+      showMapWithProjects(centerLat, centerLng, nearbyProjects, projectId);
+    }
+
+    // Show initial map with just the user's location
+    function showInitialMap(lat, lng) {
+      mapDiv.style.display = 'block';
+      mapDiv.innerHTML = '';
+      
+      const mapContainer = document.createElement('div');
+      mapContainer.style.position = 'relative';
+      mapContainer.style.width = '100%';
+      mapContainer.style.height = '100%';
+      
+      // Google Maps iframe with just the user's location
+      const iframe = document.createElement('iframe');
+      iframe.width = "100%";
+      iframe.height = "400";
+      iframe.style.border = "0";
+      iframe.loading = "lazy";
+      iframe.referrerPolicy = "no-referrer-when-downgrade";
+      
+      // Add user marker
+      const markersParam = `&markers=color:red%7Clabel:You%7C${lat},${lng}`;
+      
+      iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&z=17&output=embed${markersParam}`;
+      
+      mapContainer.appendChild(iframe);
+      mapDiv.appendChild(mapContainer);
+    }
+
+    function showMapWithProjects(centerLat, centerLng, projects, selectedProjectId) {
+      mapDiv.style.display = 'block';
+      mapDiv.innerHTML = '';
+      
+      // Create map container with current location marker
+      const mapContainer = document.createElement('div');
+      mapContainer.style.position = 'relative';
+      mapContainer.style.width = '100%';
+      mapContainer.style.height = '100%';
+      
+      // Add current location marker
+      const currentLocationMarker = document.createElement('div');
+      currentLocationMarker.className = 'current-location-marker';
+      currentLocationMarker.innerHTML = `
+        <div class="marker-pin"></div>
+        <div class="location-label">${window.languageManager.translate('Your location')}</div>
+      `;
+      
+      // Google Maps iframe with markers for all projects
+      const iframe = document.createElement('iframe');
+      iframe.width = "100%";
+      iframe.height = "400";
+      iframe.style.border = "0";
+      iframe.loading = "lazy";
+      iframe.referrerPolicy = "no-referrer-when-downgrade";
+      
+      // Build markers parameter for Google Maps
+      let markersParam = `&markers=color:red%7Clabel:You%7C${userLocation.lat},${userLocation.lng}`;
+      
+      projects.forEach((project, index) => {
+        const gpsLoc = project.project_gps_location?.[0];
+        if (gpsLoc) {
+          const color = project.id === selectedProjectId ? 'green' : 'blue';
+          const label = String.fromCharCode(65 + index); // A, B, C...
+          markersParam += `&markers=color:${color}%7Clabel:${label}%7C${gpsLoc.lat},${gpsLoc.lon}`;
+        }
+      });
+      
+      iframe.src = `https://maps.google.com/maps?q=${centerLat},${centerLng}&z=16&output=embed${markersParam}`;
+      
+      mapContainer.appendChild(iframe);
+      mapDiv.appendChild(mapContainer);
+    }
+
+    function requestLocation() {
+      if (!('geolocation' in navigator)) {
+        updateStatus("❌ " + window.languageManager.translate('Browser does not support geolocation'), 'error');
+        return;
+      }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      };
+
+      const onSuccess = async (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        userLocation = { lat: latitude, lng: longitude };
+        
+        latInput.value = latitude;
+        lngInput.value = longitude;
+        form.dataset.accuracy = String(accuracy || 10);
+        document.getElementById('accuracy').value = String(accuracy || 10);
+        
+        updateStatus(`✅ ${window.languageManager.translate('Location acquired')} (±${Math.round(accuracy)}m)。${window.languageManager.translate('Searching for nearby projects...')}`, 'success');
+        
+        // Show map immediately with user's location
+        showInitialMap(latitude, longitude);
+        
+        try {
+          // Fetch nearby projects
+          const projects = await fetchNearbyProjects(latitude, longitude);
+          
+          if (projects.length === 0) {
+            updateStatus("❌ " + window.languageManager.translate('No nearby projects found'), 'error');
+            return;
+          }
+          
+          // Show project selection
+          showProjectSelection(projects, latitude, longitude);
+          
+          // Update map with all projects
+          showMapWithProjects(latitude, longitude, projects);
+          
+          updateStatus("✅ " + window.languageManager.translate('Location acquired! Please select your work project.'), 'success');
+          
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+          updateStatus("❌ " + window.languageManager.translate('Unable to fetch nearby projects'), 'error');
+        }
+      };
+
+      const onError = (error) => {
+        handleLocationError(error);
+      };
+
+      updateStatus(window.languageManager.translate('Getting location...'), 'info');
+      navigator.geolocation.getCurrentPosition(onSuccess, onError, options);
+    }
+
+    async function handleFormSubmit(event) {
+      event.preventDefault();
+      
+      if (!projectIdInput.value) {
+        updateStatus("❌ " + window.languageManager.translate('Please select a work project first'), 'error');
+        return;
+      }
+      
+      timeTrackingBtn.disabled = true;
+      timeTrackingBtn.style.backgroundColor = "#4caf50"; // Change button to green when clicked
+      updateStatus(window.languageManager.translate('Submitting location...'), 'info');
+
+      try {
+        // Set accuracy value from the dataset
+        document.getElementById('accuracy').value = form.dataset.accuracy || '10';
+        
+        const res = await fetch("/attendance-via-gps/", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: form.token.value,
+            latitude: parseFloat(latInput.value),
+            longitude: parseFloat(lngInput.value),
+            project_id: projectIdInput.value,
+            accuracy: parseFloat(form.dataset.accuracy || '10'),
+            timestamp: new Date().toLocaleString('sv-SE', {timeZone: 'Asia/Hong_Kong'}).replace('T', ' ')
+          })
+        });
+
+        if (res.ok) {
+          updateStatus("✅ " + window.languageManager.translate('Attendance Register Succeed!'), 'success');
+          
+          // Hide project selection and show confirmation
+          projectSelection.style.display = 'none';
+          const selectedProject = nearbyProjects.find(p => p.id === projectIdInput.value);
+          
+          const confirmationDiv = document.createElement('div');
+          const currentLang = window.languageManager.getCurrentLanguage();
+          confirmationDiv.innerHTML = `
+            <div style="margin-top: 1rem; padding: 1rem; background-color: #e8f5e8; border-radius: 8px; border-left: 4px solid #4caf50;">
+              <p><strong>✅ ${window.languageManager.translate('Attendance Register Succeed!')}</strong></p>
+              <p>${window.languageManager.translate('Project')}: ${selectedProject ? selectedProject.project_code + ': ' + selectedProject.project_title : window.languageManager.translate('Unknown Project')}</p>
+              <p>${window.languageManager.translate('Time')}: ${new Date().toLocaleString('en-US', {timeZone: 'Asia/Hong_Kong', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true})}</p>
+              <p class="small">${window.languageManager.translate('System will send confirmation message to your WhatsApp')}</p>
+            </div>
+          `;
+          document.querySelector('.container').appendChild(confirmationDiv);
+          
+          // Disable the location button after successful check-in
+          getLocationBtn.disabled = true;
+          
+          // Hide the confirm button after successful check-in
+          timeTrackingBtn.style.display = 'none';
+          
+        } else {
+          let errorMsg = "❌ " + window.languageManager.translate('Attendance Register Failed.');
+          try {
+            const errorData = await res.json();
+            if (errorData.detail) errorMsg += " " + errorData.detail;
+          } catch {}
+          updateStatus(errorMsg, 'error');
+          timeTrackingBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Submit error:', error);
+        updateStatus("❌ " + window.languageManager.translate('Network error. Please try again.'), 'error');
+        timeTrackingBtn.disabled = false;
+      }
+    }
+
+    function handleLocationError(error) {
+      console.error('Location error:', error);
+      let message = "❌ " + window.languageManager.translate('Unable to get location') + " ";
+
+      switch (error.code) {
+        case 1: 
+          message += window.languageManager.translate('Please allow location access in browser settings'); 
+          break;
+        case 2: 
+          message += window.languageManager.translate('Please ensure GPS is enabled and move to a better signal area'); 
+          break;
+        case 3: 
+          message += window.languageManager.translate('Request timeout. Please try again'); 
+          break;
+        default: 
+          message += (error && error.message) ? error.message : '';
+      }
+
+      updateStatus(message, 'error');
+      getLocationBtn.disabled = false;
+      // Show the location button as fallback when auto-location fails
+      getLocationBtn.style.display = 'inline-block';
+    }
+
+    function detectInAppBrowser() {
+      const ua = navigator.userAgent || '';
+      const isInApp = /WhatsApp|FBAN|FBAV|Instagram|Line|WeChat|MicroMessenger/i.test(ua);
+      if (isInApp) {
+        inappWarning.classList.add('show');
+        inappWarning.innerHTML = "📱 " + window.languageManager.translate('Detected in-app browser');
+      }
+    }
+
+    function checkSecureContext() {
+      const isSecure = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        insecureWarning.classList.add('show');
+        insecureWarning.innerHTML = "🔒 " + window.languageManager.translate('Not secure connection');
+      }
+      return isSecure;
+    }
+
+
+    // Initialize language manager
+    function initializeLanguageManager() {
+      if (window.languageManager) {
+        window.languageManager.updateAllElements();
+        window.languageManager.addObserver(updateConfirmationMessage);
+      } else {
+        console.warn('Language manager not available, using fallback');
+        // Initialize with default language detection
+        const currentLang = document.documentElement.lang || 'en';
+        updateLanguageManually(currentLang === 'zh' ? 'zh' : 'en');
+      }
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeLanguageManager();
+    });
+
+    // Initialization
+    initializeLanguageManager();
+    detectInAppBrowser();
+    const isSecure = checkSecureContext();
+    
+    window.addEventListener('load', () => {
+      if (!autoLocationRequested) {
+        autoLocationRequested = true;
+        setTimeout(() => {
+          getLocationBtn.disabled = true;
+          requestLocation();
+        }, 500);
+      }
+    });
+    
+    // Keep the button as fallback in case auto location fails
+    getLocationBtn.addEventListener('click', () => {
+      getLocationBtn.disabled = true;
+      requestLocation();
+    });
+    
+    timeTrackingBtn.addEventListener('click', handleFormSubmit);
+  </script>
+</body>
+</html>

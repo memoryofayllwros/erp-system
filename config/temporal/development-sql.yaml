@@ -1,0 +1,33 @@
+# Temporal Dynamic Configuration for Development
+# This file contains runtime configuration that can be changed without restarting the server
+
+# Basic development settings
+system.enableLoggerRateLimiting:
+  - value: false
+
+# Workflow execution settings
+limit.maxConcurrentActivityExecutions:
+  - value: 1000
+
+# History service settings
+history.maxAutoResetPoints:
+  - value: 20
+
+# Frontend service settings
+frontend.enableUpdateWorkflowExecution:
+  - value: true
+
+# Worker settings
+worker.buildIdScavengerEnabled:
+  - value: true
+
+# Matching service settings
+matching.numTaskqueueReadPartitions:
+  - value: 4
+
+matching.numTaskqueueWritePartitions:
+  - value: 4
+
+# Enable advanced visibility
+system.enableReadFromSecondaryVisibility:
+  - value: false 
